@@ -1,97 +1,120 @@
-import { useState } from "react";
-import "./App.css";
+import { useState, useEffect } from "react";
+import { Cards } from "./Cards";
 
-function ResetButton(props) {
-  return <button onClick={props.handleClick}>Reiniciar juego</button>;
-}
-
-function Card(props) {
-  const className = `card ${props.isDisabled ? "disabled" : ""} ${
-    props.isSolved ? "solved" : ""
-  }`;
-
+const Card = ({ name, img, flipCard, id, isFlipped }) => {
   return (
-    <div className={className} onClick={() => props.handleClick(props.id)}>
-      {props.isFlipped ? props.value : ""}
-    </div>
+    <img
+      src={isFlipped ? img : "src/images/question.svg"}
+      alt={name}
+      onClick={() => {
+        if (!isFlipped) flipCard(id);
+      }}
+      className="w-full h-full   object-contain hover:scale-105"
+    ></img>
   );
-}
-function GameBoard(props) {
-  const [cards, setCards] = useState(
-    props.cards.sort(() => Math.random() - 0.5)
-  );
-  const [flipped, setFlipped] = useState([]);
-  const [solved, setSolved] = useState([]);
-  const [disabled, setDisabled] = useState(false);
+};
 
-  function handleClick(id) {
-    setDisabled(true);
-    if (flipped.length === 0) {
-      setFlipped([id]);
-      setDisabled(false);
-    } else {
-      if (sameCardClicked(id)) return;
-      setFlipped([flipped[0], id]);
-      if (isMatch(id)) {
-        setSolved([...solved, flipped[0], id]);
-        resetCards();
-      } else {
-        setTimeout(resetCards, 1000);
+function App() {
+  const [cards, setCards] = useState(Cards);
+  const [cardsChosenId, setCardsChosenId] = useState([]);
+  const [cardsWon, setCardsWon] = useState([]);
+  const [selectedCards, setSelectedCards] = useState(0);
+
+  const shuffleCards = () => {
+    const cardFalse = cards.map((card) => {
+      return {
+        ...card,
+        isFlipped: false,
+      };
+    });
+    const shuffledCards = [...cardFalse].sort(() => 0.5 - Math.random());
+    setCards(shuffledCards);
+    setCardsChosenId([]);
+    setCardsWon([]);
+    setSelectedCards(0);
+  };
+  useEffect(shuffleCards, []);
+
+  const flipCard = (id) => {
+    if (selectedCards == 2) {
+      return;
+    }
+    setSelectedCards(selectedCards + 1);
+    const newCards = cards.map((card) => {
+      if (card.id === id) {
+        return {
+          ...card,
+          isFlipped: !card.isFlipped,
+        };
       }
+      return card;
+    });
+    setCardsChosenId([...cardsChosenId, id]);
+    setCards(newCards);
+  };
+
+  useEffect(() => {
+    if (cardsChosenId.length === 2) {
+      const card1 = cards.find((card) => card.id === cardsChosenId[0]);
+      const card2 = cards.find((card) => card.id === cardsChosenId[1]);
+      if (card1.name === card2.name) {
+        setCardsWon([...cardsWon, card1.name]);
+        setSelectedCards(0);
+      } else {
+        setTimeout(() => {
+          const newCards = cards.map((card) => {
+            if (card.id === cardsChosenId[0] || card.id === cardsChosenId[1]) {
+              return {
+                ...card,
+                isFlipped: false,
+              };
+            }
+            return card;
+          });
+          setCards(newCards);
+          setSelectedCards(0);
+        }, 1500);
+      }
+      setCardsChosenId([]);
+    }
+  }, [cardsChosenId, cardsWon]);
+
+  function Finish() {
+    if (cardsWon.length === Cards.length / 2) {
+      return (
+        <section className="text-8xl font-bold text-black rounded-lg text-center">
+          YOU WIN
+        </section>
+      );
     }
   }
 
-  function sameCardClicked(id) {
-    return flipped.includes(id);
-  }
-  function resetGame() {
-    setCards(props.cards.sort(() => Math.random() - 0.5));
-    setFlipped([]);
-    setSolved([]);
-  }
-
-  function isMatch(id) {
-    const clickedCard = cards.find((card) => card.id === id);
-    const flippedCard = cards.find((card) => flipped[0] === card.id);
-    return flippedCard.value === clickedCard.value;
-  }
-
-  function resetCards() {
-    setFlipped([]);
-    setDisabled(false);
-  }
-
   return (
-    <div>
-      {cards.map((card) => (
-        <Card
-          key={card.id}
-          id={card.id}
-          value={card.value}
-          isFlipped={flipped.includes(card.id)}
-          isSolved={solved.includes(card.id)}
-          handleClick={handleClick}
-          disabled={disabled || solved.includes(card.id)}
-        />
-      ))}
-      <ResetButton handleClick={resetGame} />
-    </div>
-  );
-}
-
-const cards = [
-  { id: 1, value: "A" },
-  { id: 2, value: "A" },
-  { id: 3, value: "B" },
-  { id: 4, value: "B" },
-  { id: 5, value: "C" },
-  { id: 6, value: "C" },
-];
-
-function App() {
-  return (
-    <div>
-      <GameBoard cards={cards} />
+    <div className="h-full p-5">
+      <h1 className="text-center font-bold text-7xl pb-5 text-transparent bg-clip-text bg-gradient-to-r from-black to-blue-400">
+        Memory game
+      </h1>
+      <div className="flex justify-center pt-10">
+        <button
+          className="bg-black text-white w-40 px-6 py-2 mt-5 font-semibold text-xl transition ease-in duration-200 uppercase rounded-full hover:bg-gray-600  border-4 hover:border-white focus:outline-none"
+          onClick={shuffleCards}
+        >
+          Play
+        </button>
+      </div>
+      <Finish />
+      <div className="container  grid grid-cols-4 w-[480px]  mt-10  bg-white rounded-lg gap-3 border-black border-2 p-5">
+        {cards.map((card) => (
+          <Card
+            key={card.id}
+            id={card.id}
+            name={card.name}
+            img={card.img}
+            flipCard={flipCard}
+            isFlipped={card.isFlipped}
+          />
+        ))}
+      </div>
     </div>
   );
 }
