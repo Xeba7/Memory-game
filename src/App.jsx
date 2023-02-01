@@ -1,46 +1,41 @@
 import { useState, useEffect } from "react";
 import { Cards } from "./Cards";
-
-const Card = ({ name, img, flipCard, id, isFlipped }) => {
-  return (
-    <img
-      src={isFlipped ? img : "src/images/question.svg"}
-      alt={name}
-      onClick={() => {
-        if (!isFlipped) flipCard(id);
-      }}
-      className="w-full h-full   object-contain hover:scale-105"
-    ></img>
-  );
-};
+import Navbar from "./navbar";
+import Card from "./Card";
 
 function App() {
-  const [cards, setCards] = useState(Cards);
-  const [cardsChosenId, setCardsChosenId] = useState([]);
-  const [cardsWon, setCardsWon] = useState([]);
-  const [selectedCards, setSelectedCards] = useState(0);
+  const initialState = {
+    cards: Cards,
+    cardsChosenId: [],
+    cardsWon: [],
+    selectedCards: 0,
+  };
+
+  const [state, setState] = useState(initialState);
 
   const shuffleCards = () => {
-    const cardFalse = cards.map((card) => {
+    const cardFalse = state.cards.map((card) => {
       return {
         ...card,
         isFlipped: false,
       };
     });
     const shuffledCards = [...cardFalse].sort(() => 0.5 - Math.random());
-    setCards(shuffledCards);
-    setCardsChosenId([]);
-    setCardsWon([]);
-    setSelectedCards(0);
+    setState({
+      ...state,
+      cards: shuffledCards,
+      cardsChosenId: [],
+      cardsWon: [],
+      selectedCards: 0,
+    });
   };
   useEffect(shuffleCards, []);
 
   const flipCard = (id) => {
-    if (selectedCards == 2) {
+    if (state.selectedCards === 2) {
       return;
     }
-    setSelectedCards(selectedCards + 1);
-    const newCards = cards.map((card) => {
+    const newCards = state.cards.map((card) => {
       if (card.id === id) {
         return {
           ...card,
@@ -49,21 +44,36 @@ function App() {
       }
       return card;
     });
-    setCardsChosenId([...cardsChosenId, id]);
-    setCards(newCards);
+    setState({
+      ...state,
+      cards: newCards,
+      cardsChosenId: [...state.cardsChosenId, id],
+      selectedCards: state.selectedCards + 1,
+    });
   };
 
   useEffect(() => {
-    if (cardsChosenId.length === 2) {
-      const card1 = cards.find((card) => card.id === cardsChosenId[0]);
-      const card2 = cards.find((card) => card.id === cardsChosenId[1]);
+    if (state.cardsChosenId.length === 2) {
+      const card1 = state.cards.find(
+        (card) => card.id === state.cardsChosenId[0]
+      );
+      const card2 = state.cards.find(
+        (card) => card.id === state.cardsChosenId[1]
+      );
       if (card1.name === card2.name) {
-        setCardsWon([...cardsWon, card1.name]);
-        setSelectedCards(0);
+        setState({
+          ...state,
+          cardsWon: [...state.cardsWon, card1.name],
+          cardsChosenId: [],
+          selectedCards: 0,
+        });
       } else {
         setTimeout(() => {
-          const newCards = cards.map((card) => {
-            if (card.id === cardsChosenId[0] || card.id === cardsChosenId[1]) {
+          const newCards = state.cards.map((card) => {
+            if (
+              card.id === state.cardsChosenId[0] ||
+              card.id === state.cardsChosenId[1]
+            ) {
               return {
                 ...card,
                 isFlipped: false,
@@ -71,18 +81,21 @@ function App() {
             }
             return card;
           });
-          setCards(newCards);
-          setSelectedCards(0);
-        }, 1500);
+          setState({
+            ...state,
+            cards: newCards,
+            cardsChosenId: [],
+            selectedCards: 0,
+          });
+        }, 1000);
       }
-      setCardsChosenId([]);
     }
-  }, [cardsChosenId, cardsWon]);
+  }, [state.cardsChosenId]);
 
   function Finish() {
-    if (cardsWon.length === Cards.length / 2) {
+    if (state.cardsWon.length === state.cards.length / 2) {
       return (
-        <section className="text-8xl font-bold text-black rounded-lg text-center">
+        <section className="text-8xl font-bold text-red-600 rounded-lg text-center">
           YOU WIN
         </section>
       );
@@ -90,21 +103,22 @@ function App() {
   }
 
   return (
-    <div className="h-full p-5">
-      <h1 className="text-center font-bold text-7xl pb-5 text-transparent bg-clip-text bg-gradient-to-r from-black to-blue-400">
+    <div className="h-full sm:p-5  min-w-fit">
+      <Navbar />
+      <h1 className="text-center font-bold text-7xl  pb-3 text-transparent bg-clip-text bg-gradient-to-r from-black to-blue-400">
         Memory game
       </h1>
-      <div className="flex justify-center pt-10">
+      <div className="flex justify-center">
         <button
-          className="bg-black text-white w-40 px-6 py-2 mt-5 font-semibold text-xl transition ease-in duration-200 uppercase rounded-full hover:bg-gray-600  border-4 hover:border-white focus:outline-none"
+          className="bg-black text-white w-40 px-6 mt-2 py-2  font-semibold text-xl transition ease-in duration-200 uppercase hover:scale-105 rounded-full hover:bg-slate-800 border-4 hover:border-white focus:outline-none"
           onClick={shuffleCards}
         >
           Play
         </button>
       </div>
       <Finish />
-      <div className="container  grid grid-cols-4 w-[480px]  mt-10  bg-white rounded-lg gap-3 border-black border-2 p-5">
-        {cards.map((card) => (
+      <div className="container  grid grid-cols-4 w-[480px] mt-5 bg-white rounded-lg gap-3 border-black border-2 p-5 shadow-2xl shadow-black">
+        {state.cards.map((card) => (
           <Card
             key={card.id}
             id={card.id}
